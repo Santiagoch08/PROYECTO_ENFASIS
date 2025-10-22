@@ -1,0 +1,13 @@
+<h2>Agregar Usuario</h2>
+<form action="{{ url_for('main.add_user') }}" method="POST">
+    <input type="text" name="name" placeholder="Nombre" required>
+    <input type="email" name="email" placeholder="Email" required>
+    <select name="rol" required>
+        <option value="">Seleccione un rol</option>
+        {% for id, name in roles %}
+        <option value="{{ id }}">{{ name }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit">Agregar</button>
+</form>
+<a href="{{ url_for('main.index') }}">Volver a la lista</a>

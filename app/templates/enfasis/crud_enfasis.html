@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Usuarios del Énfasis</title>
+  <link rel="icon" href="{{ url_for('static', filename='Escudo.png') }}" type="image/png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container py-4">
+
+  <h2 class="mb-4">Usuarios del Énfasis</h2>
+
+  <!-- Tabla de usuarios -->
+  <table class="table table-bordered table-hover">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>{{ user[0] }}</td>
+        <td>{{ user[1] }}</td>
+        <td>{{ user[2] }}</td>
+        <td>
+          <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editUserModal"
+            data-id="{{ user[0] }}" data-nombre="{{ user[1] }}" data-email="{{ user[2] }}">
+            Editar
+          </button>
+          <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteUserModal"
+            data-id="{{ user[0] }}">
+            Eliminar
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Modal Editar Usuario -->
+  <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form method="POST" id="editUserForm">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Editar Usuario</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="text" name="nombre" id="editUserNombre" class="form-control mb-2" placeholder="Nombre" required>
+            <input type="email" name="email" id="editUserEmail" class="form-control" placeholder="Email" required>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Actualizar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Eliminar Usuario -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form method="POST" id="deleteUserForm">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Eliminar Usuario</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            ¿Estás seguro de que deseas eliminar este usuario?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-danger">Eliminar</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Script para pasar datos a los modales -->
+  <script>
+    const editUserModal = document.getElementById('editUserModal')
+    const editUserForm = document.getElementById('editUserForm')
+    editUserModal.addEventListener('show.bs.modal', event => {
+      const button = event.relatedTarget
+      const id = button.getAttribute('data-id')
+      const nombre = button.getAttribute('data-nombre')
+      const email = button.getAttribute('data-email')
+      editUserForm.action = `/edit_user/${id}`
+      document.getElementById('editUserNombre').value = nombre
+      document.getElementById('editUserEmail').value = email
+    })
+
+    const deleteUserModal = document.getElementById('deleteUserModal')
+    const deleteUserForm = document.getElementById('deleteUserForm')
+    deleteUserModal.addEventListener('show.bs.modal', event => {
+      const button = event.relatedTarget
+      const id = button.getAttribute('data-id')
+      deleteUserForm.action = `/delete_user/${id}`
+    })
+  </script>
+
+</body>
+</html>

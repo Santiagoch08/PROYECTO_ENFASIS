@@ -1,0 +1,6 @@
+Flask
+flask-cors
+gunicorn
+requests
+flask_sqlalchemy
+flask_mysqldb

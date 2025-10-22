@@ -1,0 +1,67 @@
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from app import mysql
+from MySQLdb._exceptions import IntegrityError
+
+emphasis = Blueprint('emphasis', __name__, template_folder='../../templates', static_folder='../../static')
+
+# Cards
+@emphasis.route('/enfasis')
+def enfasis():
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM enfasis")
+    data = cur.fetchall()
+    cur.close()
+    return render_template('/enfasis/enfasis.html', enfasis=data)
+
+# Lista de usuarios de un énfasis
+@emphasis.route('/enfasis/<int:id>')
+def users_enfasis(id):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM users u WHERE u.enfasis_id = %s ORDER BY u.name ASC", (id,))
+    data = cur.fetchall()
+    cur.close()
+    return render_template('/enfasis/crud_enfasis.html', users=data)
+
+# Tabla con CRUD
+@emphasis.route('/add_enfasis', methods=['GET', 'POST'])
+def add_enfasis():
+    cur = mysql.connection.cursor()
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        descripcion = request.form['descripcion']
+        try:
+            cur.execute("INSERT INTO enfasis (nombre, descripcion) VALUES (%s, %s)", (nombre, descripcion))
+            mysql.connection.commit()
+            flash('Énfasis agregado correctamente', 'success')
+        except IntegrityError:
+            flash('Ese énfasis ya existe.', 'danger')
+        cur.close()
+        return redirect(url_for('emphasis.add_enfasis'))
+
+    cur.execute("SELECT * FROM enfasis")
+    data = cur.fetchall()
+    cur.close()
+    return render_template('/enfasis/add_enfasis.html', enfasis=data)
+
+@emphasis.route('/edit_enfasis/<int:id>', methods=['POST'])
+def edit_enfasis(id):
+    nombre = request.form['nombre']
+    descripcion = request.form['descripcion']
+    cur = mysql.connection.cursor()
+    try:
+        cur.execute("UPDATE enfasis SET nombre=%s, descripcion=%s WHERE id=%s", (nombre, descripcion, id))
+        mysql.connection.commit()
+        flash('Énfasis actualizado correctamente', 'success')
+    except IntegrityError:
+        flash('Ese énfasis ya existe.', 'danger')
+    cur.close()
+    return redirect(url_for('emphasis.add_enfasis'))
+
+@emphasis.route('/delete_enfasis/<int:id>', methods=['POST'])
+def delete_enfasis(id):
+    cur = mysql.connection.cursor()
+    cur.execute("DELETE FROM enfasis WHERE id=%s", (id,))
+    mysql.connection.commit()
+    cur.close()
+    flash('Énfasis eliminado correctamente', 'success')
+    return redirect(url_for('emphasis.add_enfasis'))
