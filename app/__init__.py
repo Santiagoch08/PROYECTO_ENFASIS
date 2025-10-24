@@ -1,24 +1,36 @@
+import pymysql
 from flask import Flask
 from flask_cors import CORS
-from flask_mysqldb import MySQL
+from flask_sqlalchemy import SQLAlchemy
 
-mysql = MySQL()  # Instancia global
+pymysql.install_as_MySQLdb()
+db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
+    app.secret_key = "supersecretkey"  # ⚠️ cámbiala por una segura
 
-    app.config['MYSQL_HOST'] = 'localhost'
-    app.config['MYSQL_USER'] = 'root'
-    app.config['MYSQL_PASSWORD'] = ''
-    app.config['MYSQL_DB'] = 'CODESA'
+    # Configuración de conexión a MySQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:@localhost/CODESA'
+    app.config['SQLALCHEMY_TRACKfrom app import db_MODIFICATIONS'] = False
 
+    # Inicializar la base de datos con la app
+    db.init_app(app)
+
+    # Permitir CORS
     CORS(app, resources={r"/*": {"origins": "*"}})
-
-    mysql.init_app(app)  # Inicializar extensión aquí
-
-    # Importar blueprint *ya definido* con todas sus rutas
-    from app.routes.index import main
-    app.register_blueprint(main)
+    
+    # Registrar blueprints
     from app.routes.enfasis import emphasis
+    from app.routes.rol import rol_bp
+    from app.routes.index import main
+
     app.register_blueprint(emphasis)
+    app.register_blueprint(rol_bp)
+    app.register_blueprint(main)
+
+    # Crear tablas si no existen
+    with app.app_context():
+        db.create_all()
+
     return app

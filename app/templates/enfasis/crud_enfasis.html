@@ -17,22 +17,24 @@
         <th>#</th>
         <th>Nombre</th>
         <th>Email</th>
+        <th>Rol</th>
         <th>Acciones</th>
       </tr>
     </thead>
     <tbody>
       {% for user in users %}
       <tr>
-        <td>{{ user[0] }}</td>
-        <td>{{ user[1] }}</td>
-        <td>{{ user[2] }}</td>
+        <td>{{ user.id }}</td>
+        <td>{{ user.name }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.role }}</td>
         <td>
           <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editUserModal"
-            data-id="{{ user[0] }}" data-nombre="{{ user[1] }}" data-email="{{ user[2] }}">
+            data-id="{{ user.id }}" data-nombre="{{ user.name }}" data-email="{{ user.email }}">
             Editar
           </button>
           <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteUserModal"
-            data-id="{{ user[0] }}">
+            data-id="{{ user.id }}">
             Eliminar
           </button>
         </td>

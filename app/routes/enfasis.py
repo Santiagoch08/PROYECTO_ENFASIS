@@ -1,87 +1,74 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from app import mysql
-from MySQLdb._exceptions import IntegrityError
+from app import db
 
-emphasis = Blueprint('emphasis', __name__, template_folder='../../templates', static_folder='../../static')
+from app.models.Enfasis import Enfasis
+from app.models.Usuario import Usuario
 
+emphasis = Blueprint('emphasis', __name__,
+                     template_folder='../../templates',
+                     static_folder='../../static')
 
-# Mostrar las cartas de los énfasis
+# Mostrar todos los énfasis
 @emphasis.route('/enfasis')
 def enfasis():
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM enfasis")
-    data = cur.fetchall()
-    cur.close()
-    return render_template('/enfasis/enfasis.html', enfasis=data)
+    enfasis_list = Enfasis.query.order_by(Enfasis.nombre.asc()).all()
+    return render_template('/enfasis/enfasis.html', enfasis=enfasis_list)
 
-
-# Mostrar usuarios de un énfasis
-@emphasis.route('/enfasis/<int:id>', methods=['GET'])
+# Lista de usuarios de un énfasis específico
+@emphasis.route('/enfasis/<int:id>')
 def users_enfasis(id):
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM users WHERE enfasis_id = %s ORDER BY name ASC", (id,))
-    users = cur.fetchall()
-    cur.execute("SELECT nombre FROM enfasis WHERE id=%s", (id,))
-    enfasis_nombre = cur.fetchone()[0]
-    cur.close()
-    return render_template('/enfasis/crud_enfasis.html', users=users, enfasis_nombre=enfasis_nombre, enfasis_id=id)
+    # cur = mysql.connection.cursor()
+    # cur.execute("SELECT * FROM users u WHERE u.enfasis_id = %s ORDER BY u.name ASC", (id,))
+    # data = cur.fetchall()
+    # cur.close()
+    users = Usuario.query.filter_by(enfasis_id=id).order_by(Usuario.name.asc()).all()
+    return render_template('/enfasis/crud_enfasis.html', users=users)
 
-
-# Agregar énfasis (solo en add_enfasis.html)
+# # Crear nuevo énfasis
 @emphasis.route('/add_enfasis', methods=['GET', 'POST'])
 def add_enfasis():
-    cur = mysql.connection.cursor()
-
+    # cur = mysql.connection.cursor()
     if request.method == 'POST':
         nombre = request.form['nombre']
         descripcion = request.form['descripcion']
+        new_enfasis = Enfasis(nombre=nombre, descripcion=descripcion)
         try:
-            cur.execute("INSERT INTO enfasis (nombre, descripcion) VALUES (%s, %s)", (nombre, descripcion))
-            mysql.connection.commit()
+            db.session.add(new_enfasis)
+            db.session.commit()
             flash('Énfasis agregado correctamente', 'success')
-        except IntegrityError:
-            flash('Ese énfasis ya existe. Intenta con otro nombre.', 'danger')
-        cur.close()
-        return redirect(url_for('emphasis.enfasis'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Error al agregar el énfasis: {}'.format(str(e)), 'danger')
 
-    cur.execute("SELECT * FROM enfasis")
-    data = cur.fetchall()
-    cur.close()
+    enfasis_list = Enfasis.query.order_by(Enfasis.nombre.asc()).all()
+    data = enfasis_list
     return render_template('/enfasis/add_enfasis.html', enfasis=data)
 
-
-# Editar usuario
-@emphasis.route('/edit_user/<int:id>', methods=['POST'])
-def edit_user(id):
+# Editar énfasis
+@emphasis.route('/edit_enfasis/<int:id>', methods=['POST'])
+def edit_enfasis(id):
     nombre = request.form['nombre']
-    email = request.form['email']
-
+    descripcion = request.form['descripcion']
+    enfasis = Enfasis.query.get(id)
+    enfasis.nombre = nombre
+    enfasis.descripcion = descripcion
     try:
-        cur = mysql.connection.cursor()
-        cur.execute("UPDATE users SET name=%s, email=%s WHERE id=%s", (nombre, email, id))
-        mysql.connection.commit()
-        cur.close()
-        flash('Usuario actualizado correctamente', 'success')
-    except IntegrityError:
-        flash('Error al actualizar el usuario', 'danger')
+        db.session.commit()
+        flash('Énfasis actualizado correctamente', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al actualizar el énfasis: {}'.format(str(e)), 'danger')
+    return redirect(url_for('emphasis.add_enfasis'))
 
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT enfasis_id FROM users WHERE id=%s", (id,))
-    enfasis_id = cur.fetchone()[0]
-    cur.close()
-    return redirect(url_for('emphasis.users_enfasis', id=enfasis_id))
-
-
-# Eliminar usuario
-@emphasis.route('/delete_user/<int:id>', methods=['POST'])
-def delete_user(id):
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT enfasis_id FROM users WHERE id=%s", (id,))
-    enfasis_id = cur.fetchone()[0]
-
-    cur.execute("DELETE FROM users WHERE id=%s", (id,))
-    mysql.connection.commit()
-    cur.close()
-
-    flash('Usuario eliminado correctamente', 'success')
-    return redirect(url_for('emphasis.users_enfasis', id=enfasis_id))
+# Eliminar énfasis
+@emphasis.route('/delete_enfasis/<int:id>', methods=['POST'])
+def delete_enfasis(id):
+    enfasis = Enfasis.query.get(id)
+    try:
+        db.session.delete(enfasis)
+        db.session.commit()
+        flash('Énfasis eliminado correctamente', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al eliminar el énfasis: {}'.format(str(e)), 'danger')
+    return redirect(url_for('emphasis.add_enfasis'))

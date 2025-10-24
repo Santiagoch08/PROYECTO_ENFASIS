@@ -1,67 +1,185 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
-from app import mysql
-from MySQLdb._exceptions import IntegrityError
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Agregar Énfasis</title>
+  <link rel="icon" href="{{ url_for('static', filename='Escudo.png') }}" type="image/png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container py-4">
 
-emphasis = Blueprint('emphasis', __name__, template_folder='../../templates', static_folder='../../static')
+  <h2 class="mb-4">Énfasis</h2>
 
-# Cards
-@emphasis.route('/enfasis')
-def enfasis():
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM enfasis")
-    data = cur.fetchall()
-    cur.close()
-    return render_template('/enfasis/enfasis.html', enfasis=data)
+  <!-- Botón para abrir modal Agregar Énfasis -->
+  <button type="button" class="btn btn-success mb-4" data-bs-toggle="modal" data-bs-target="#formModal">
+    Agregar Énfasis
+  </button>
 
-# Lista de usuarios de un énfasis
-@emphasis.route('/enfasis/<int:id>')
-def users_enfasis(id):
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM users u WHERE u.enfasis_id = %s ORDER BY u.name ASC", (id,))
-    data = cur.fetchall()
-    cur.close()
-    return render_template('/enfasis/crud_enfasis.html', users=data)
+  <!-- Tabla de énfasis -->
+  <table class="table table-bordered table-hover">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Nombre</th>
+        <th>Descripción</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for enf in enfasis %}
+      <tr>
+        <td>{{ enf.id }}</td>
+        <td>{{ enf.nombre }}</td>
+        <td>{{ enf.descripcion }}</td>
+        <td>
+          <!-- Botón editar -->
+          <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editEnfModal"
+            data-id="{{ enf.id }}"
+            data-nombre="{{ enf.nombre }}"
+            data-descripcion="{{ enf.descripcion }}">
+            Editar
+          </button>
 
-# Tabla con CRUD
-@emphasis.route('/add_enfasis', methods=['GET', 'POST'])
-def add_enfasis():
-    cur = mysql.connection.cursor()
-    if request.method == 'POST':
-        nombre = request.form['nombre']
-        descripcion = request.form['descripcion']
-        try:
-            cur.execute("INSERT INTO enfasis (nombre, descripcion) VALUES (%s, %s)", (nombre, descripcion))
-            mysql.connection.commit()
-            flash('Énfasis agregado correctamente', 'success')
-        except IntegrityError:
-            flash('Ese énfasis ya existe.', 'danger')
-        cur.close()
-        return redirect(url_for('emphasis.add_enfasis'))
+          <!-- Botón eliminar -->
+          <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal"
+            data-id="{{ enf.id }}">
+            Eliminar
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-    cur.execute("SELECT * FROM enfasis")
-    data = cur.fetchall()
-    cur.close()
-    return render_template('/enfasis/add_enfasis.html', enfasis=data)
+<!-- Botón Volver fijo en la esquina inferior izquierda -->
+<div style="position: fixed; bottom: 20px; left: 20px; z-index: 1050;">
+  <a href="{{ url_for('emphasis.enfasis') }}" class="btn btn-secondary">
+    Volver
+  </a>
+</div>
 
-@emphasis.route('/edit_enfasis/<int:id>', methods=['POST'])
-def edit_enfasis(id):
-    nombre = request.form['nombre']
-    descripcion = request.form['descripcion']
-    cur = mysql.connection.cursor()
-    try:
-        cur.execute("UPDATE enfasis SET nombre=%s, descripcion=%s WHERE id=%s", (nombre, descripcion, id))
-        mysql.connection.commit()
-        flash('Énfasis actualizado correctamente', 'success')
-    except IntegrityError:
-        flash('Ese énfasis ya existe.', 'danger')
-    cur.close()
-    return redirect(url_for('emphasis.add_enfasis'))
 
-@emphasis.route('/delete_enfasis/<int:id>', methods=['POST'])
-def delete_enfasis(id):
-    cur = mysql.connection.cursor()
-    cur.execute("DELETE FROM enfasis WHERE id=%s", (id,))
-    mysql.connection.commit()
-    cur.close()
-    flash('Énfasis eliminado correctamente', 'success')
-    return redirect(url_for('emphasis.add_enfasis'))
+  <!-- Modal Agregar Énfasis -->
+  <div class="modal fade" id="formModal" tabindex="-1" aria-labelledby="formModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form action="{{ url_for('emphasis.add_enfasis') }}" method="POST">
+          <div class="modal-header">
+            <h5 class="modal-title" id="formModalLabel">Agregar Énfasis</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <input type="text" name="nombre" class="form-control" placeholder="Nombre" required>
+              </div>
+              <div class="col-md-6">
+                <input type="text" name="descripcion" class="form-control" placeholder="Descripción" required>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Énfasis</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Énfasis -->
+  <div class="modal fade" id="editEnfModal" tabindex="-1" aria-labelledby="editEnfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <form method="POST" id="editEnfForm">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editEnfModalLabel">Editar Énfasis</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <input type="text" name="nombre" class="form-control" id="editNombre" required>
+              </div>
+              <div class="col-md-6">
+                <input type="text" name="descripcion" class="form-control" id="editDescripcion" required>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Actualizar Énfasis</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Confirmar Eliminación -->
+  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="deleteForm" method="POST">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirmar Eliminación</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            ¿Estás seguro de que deseas eliminar este énfasis?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-danger">Eliminar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div class="toast-container position-fixed top-0 start-50 translate-middle-x p-3" style="z-index: 1055;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="toast align-items-center show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header {% if category == 'success' %}bg-success{% elif category == 'danger' %}bg-danger{% else %}bg-primary{% endif %} text-white">
+              <strong class="me-auto">Notificación</strong>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Cerrar"></button>
+            </div>
+            <div class="toast-body">{{ message }}</div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Rellenar modal Editar Énfasis
+    var editEnfModal = document.getElementById('editEnfModal')
+    editEnfModal.addEventListener('show.bs.modal', function (event) {
+      var button = event.relatedTarget
+      var id = button.getAttribute('data-id')
+      var nombre = button.getAttribute('data-nombre')
+      var descripcion = button.getAttribute('data-descripcion')
+
+      var form = document.getElementById('editEnfForm')
+      form.action = '/edit_enfasis/' + id
+
+      document.getElementById('editNombre').value = nombre
+      document.getElementById('editDescripcion').value = descripcion
+    })
+
+    // Rellenar modal Eliminar Énfasis
+    var deleteModal = document.getElementById('confirmDeleteModal')
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+      var button = event.relatedTarget
+      var id = button.getAttribute('data-id')
+      var form = document.getElementById('deleteForm')
+      form.action = '/delete_enfasis/' + id
+    })
+  </script>
+
+</body>
+</html>
